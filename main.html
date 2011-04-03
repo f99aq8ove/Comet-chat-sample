@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>COMET sample</title>
+        <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+        <script type="text/javascript">google.load("jquery", "1");</script>
+        <script type="text/javascript">
+$(function(){
+    $("#chat").submit(function() {
+        $.post("/post", $("#chat").serialize());
+        $("#chat input[name=text]").val('');
+        return false;
+    });
+
+    var that = this;
+    var last_id;
+    (function() {
+        $.get("/get?last_id=" + that.last_id, function(data) {
+            $.each(data, function() {
+                that.last_id = this.id;
+                $("#message").prepend($("<div />").text(
+                        "(" + (new Date(this.time * 1000)).toLocaleString() + ") " + this.name + " : " + this.text)
+                    );
+            });
+        }, "json").success(arguments.callee).error(function() {
+            alert("got error. please reload.")
+        });
+    })();
+});
+        </script>
+    </head>
+    <body>
+        <form id="chat">
+            <input type="text" name="name"></input>
+            <input type="text" name="text" size="100"></input>
+            <input type="submit" value="send"></input>
+        </form>
+        <div id="message"></div>
+    </body>
+</html>
