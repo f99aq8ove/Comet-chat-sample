@@ -163,7 +163,7 @@ get '/get' => sub {
         $last_id = 0;
     }
 
-    if ($last_id == 0) {
+    if ($last_id == 0 && @messages != 0) {
         return response_create(200, 'OK',
             "Content-Type: application/json; charset=UTF-8\nConnection: close",
             make_chat_response_json($last_id));
