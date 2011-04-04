@@ -13,6 +13,15 @@ $(function(){
         return false;
     });
 
+    var base_title = document.title;
+    var focus_out;
+    var unread = 0;
+    $(window).blur(function() { focus_out = true; unread = 0; });
+    $(window).focus(function() { focus_out = false; change_title(unread); });
+    var change_title = function(title) {
+        document.title = (focus_out ? "(" + title + ") " : "") + base_title;
+    };
+
     var that = this;
     var last_id;
     (function() {
@@ -22,6 +31,7 @@ $(function(){
                 $("#message").prepend($("<div />").text(
                         "(" + (new Date(this.time * 1000)).toLocaleString() + ") " + this.name + " : " + this.text)
                     );
+                change_title(++unread);
             });
         }, "json").success(arguments.callee).error(function() {
             alert("got error. please reload.")
