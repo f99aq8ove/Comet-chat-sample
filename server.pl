@@ -110,6 +110,11 @@ get '/' => sub {
     return response_create(200, 'OK', 'Context-Type: text/html; charset=UTF-8', $html);
 };
 
+sub undef_to_blank {
+    my $str = shift;
+    return defined $str ? $str : '';
+}
+
 my @comet_socks;
 my @messages;
 my $counter = 0;
@@ -118,8 +123,8 @@ post '/post' => sub {
 
     my $query = CGI->new($self->{content});
     push @messages, {
-        name => $query->param('name'),
-        text => $query->param('text'),
+        name => undef_to_blank($query->param('name')),
+        text => undef_to_blank($query->param('text')),
         id => sprintf('%d%03d', time, $counter++),
         time => time,
     };
@@ -158,8 +163,8 @@ sub make_chat_response_json {
 get '/get' => sub {
     my $self = shift;
     my $query = CGI->new($self->{query});
-    my $last_id = $query->param('last_id');
-    if (!defined $last_id || $last_id !~ /^\d+$/) {
+    my $last_id = undef_to_blank($query->param('last_id'));
+    if ($last_id !~ /^\d+$/) {
         $last_id = 0;
     }
 
