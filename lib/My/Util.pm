@@ -44,10 +44,17 @@ sub response_create {
     return "HTTP/1.0 $code $message\r\n$header\r\n$content";
 }
 
+my %encode_char_list = (
+    "\n" => '\n',
+    "\t" => '\t',
+    '\\' => '\\\\',
+    '"' => '\\"',
+);
+my $encode_regex = '(?:' . join('|', map { "\Q$_\E" } keys %encode_char_list) . ')';
 sub json_string_encode {
     my $str = shift;
-    $str =~ s/\\/\\\\/g;
-    $str =~ s/"/\\"/g;
+    $str =~ s/$encode_regex/$encode_char_list{$&}/go;
+    $str =~ s/[\x00-\x1F\x7F]//g;
     return qq{"$str"};
 }
 
