@@ -18,7 +18,7 @@ $SIG{'PIPE'} = 'IGNORE';
 
 sub main {
     # $listen->blocking(0);
-    my $listen = new IO::Socket::INET(Listen => 1, LocalPort => 8000, ReusePort => 1);
+    my $listen = new IO::Socket::INET(Listen => 1, LocalPort => 8000, ReuseAddr => 1);
     my $select = new IO::Select($listen);
     while (my @ready = $select->can_read) {
         for my $sock (@ready) {
