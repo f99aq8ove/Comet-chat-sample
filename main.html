@@ -9,7 +9,7 @@
 $(function(){
     $("#chat").submit(function() {
         $.post("/post", $("#chat").serialize());
-        $("#chat input[name=text]").val('');
+        $("#chat input[name=text]").val('').focus();
         return false;
     });
 
