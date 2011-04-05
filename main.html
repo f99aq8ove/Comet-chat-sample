@@ -22,12 +22,11 @@ $(function(){
         document.title = (focus_out ? "(" + title + ") " : "") + base_title;
     };
 
-    var that = this;
     var last_id;
     (function() {
-        $.get("/get?last_id=" + that.last_id + '&dummy=' + (new Date()).getTime(), function(data) {
+        $.get("/get?last_id=" + last_id + '&dummy=' + (new Date()).getTime(), function(data) {
             $.each(data, function() {
-                that.last_id = this.id;
+                last_id = this.id;
                 $("#message").prepend($("<div />").text(
                         "(" + (new Date(this.time * 1000)).toLocaleString() + ") " + this.name + " : " + this.text)
                     );
