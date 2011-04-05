@@ -16,8 +16,8 @@ $(function(){
     var base_title = document.title;
     var focus_out;
     var unread = 0;
-    $(window).blur(function() { focus_out = true; unread = 0; });
-    $(window).focus(function() { focus_out = false; change_title(unread); });
+    $("body").focusout(function() { focus_out = true; unread = 0; });
+    $("body").focusin(function()  { focus_out = false; change_title(unread); });
     var change_title = function(title) {
         document.title = (focus_out ? "(" + title + ") " : "") + base_title;
     };
