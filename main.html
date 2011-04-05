@@ -16,7 +16,7 @@ $(function(){
     var base_title = document.title;
     var focus_out;
     var unread = 0;
-    $("body").focusout(function() { focus_out = true; unread = 0; });
+    $("body").focusout(function() { focus_out = true; unread = 0; $("#message").prepend($("<hr />")); });
     $("body").focusin(function()  { focus_out = false; change_title(unread); });
     var change_title = function(title) {
         document.title = (focus_out ? "(" + title + ") " : "") + base_title;
