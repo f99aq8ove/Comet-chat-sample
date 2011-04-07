@@ -41,21 +41,28 @@ $(function(){
     })();
 
     var get_cookie = function(k) {
-        if (!document.cookie) return {};
+        if (!document.cookie) return "";
         var cookies = {};
         $.each(document.cookie.split(/;\s*/), function() {
                 var tmp = this.split(/=/);
                 cookies[unescape(tmp[0])] = unescape(tmp[1]);
                 });
-        return cookies[k];
+        return cookies[k] || "";
     };
 
-    var set_cookie = function(k, v) {
-        document.cookie = escape(k) + "=" + escape(v);
+    var set_cookie = function(key, value, opt) {
+        if (!opt) {
+            opt = {};
+        }
+        var tmp = new Array();
+        $.each(opt, function(k, v) {
+                tmp.push(k + "=" + v);
+                });
+        document.cookie = escape(key) + "=" + escape(value) + "; " + tmp.join("; ");
     };
 
     $("#chat input[name=name]").val(get_cookie("NAME")).focusout(function() {
-            set_cookie("NAME", $(this).val());
+            set_cookie("NAME", $(this).val(), { expires: (new Date((new Date()).getTime() + 7 * 24 * 60 * 60 * 1000)).toUTCString() });
             });
 
     $(window).resize(function() {
