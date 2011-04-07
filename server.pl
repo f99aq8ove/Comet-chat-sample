@@ -118,14 +118,22 @@ sub undef_to_blank {
 my @comet_socks;
 my @messages;
 my $counter = 0;
+my $last_time = 0;
 post '/post' => sub {
     my $self = shift;
 
     my $query = CGI->new($self->{content});
+    my $time = time;
+    if ($time == $last_time) {
+        $counter++;
+    } else {
+        $last_time = $time;
+        $counter = 0;
+    }
     push @messages, {
         name => undef_to_blank($query->param('name')),
         text => undef_to_blank($query->param('text')),
-        id => sprintf('%d%03d', time, $counter++),
+        id => sprintf('%d%03d', $time, $counter),
         time => time,
     };
     if (@messages > 100) { shift @messages; }
