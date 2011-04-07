@@ -139,7 +139,7 @@ post '/post' => sub {
     if (@messages > 100) { shift @messages; }
 
     for my $client (@comet_socks) {
-        my $json = make_chat_response_json($client->{last_id});
+        my ($json, undef) = make_chat_response_json($client->{last_id});
 
         my $s = $client->{sock};
         print $s response_create(200, 'OK',
@@ -165,7 +165,7 @@ sub make_chat_response_json {
             } @msg))
     .']';
 
-    return $json;
+    return ($json, scalar @msg);
 }
 
 get '/get' => sub {
@@ -176,10 +176,11 @@ get '/get' => sub {
         $last_id = 0;
     }
 
-    if ($last_id == 0 && @messages != 0) {
+    my ($json, $num) = make_chat_response_json($last_id);
+    if ($num) {
         return response_create(200, 'OK',
             "Content-Type: application/json; charset=UTF-8\nConnection: close",
-            make_chat_response_json($last_id));
+            $json);
     } else {
         push @comet_socks, { sock => $self->{sock}, last_id => $last_id };
         return undef;
