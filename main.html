@@ -26,9 +26,24 @@ $(function(){
     var retries_remaining;
     (function() {
         var self_func = arguments.callee;
+        var error_handler = function() {
+            if (retries_remaining-- > 0) {
+                $('#notice').css("background-color", "yellow").text("Re-connecting...").slideDown().delay(10000).slideUp();
+                setTimeout(self_func, 10000);
+            } else {
+                $('#notice').css("background-color", "red").text("Network error. Please reload.").slideDown();
+                $("body").unbind("focusin.changetitle");
+                change_title("!");
+                alert("Network error. Please reload.");
+            }
+        };
         $.get("/get?last_id=" + last_id + '&dummy=' + (new Date()).getTime(), function(data) {
             retries_remaining = 10;
 
+            if (!data) {
+                error_handler();
+                return;
+            }
             if (focus_out && unread == 0) {
                 $("#message").prepend($("<hr />"));
             }
@@ -39,17 +54,8 @@ $(function(){
                     );
                 change_title(++unread);
             });
-        }, "json").success(self_func).error(function() {
-            if (retries_remaining-- > 0) {
-                $('#notice').css("background-color", "yellow").text("Re-connecting...").slideDown().delay(10000).slideUp();
-                setTimeout(self_func, 10000);
-            } else {
-                $('#notice').css("background-color", "red").text("Network error. Please reload.").slideDown();
-                $("body").unbind("focusin.changetitle");
-                change_title("!");
-                alert("Network error. Please reload.");
-            }
-        });
+            self_func();
+        }, "json").error(error_handler);
     })();
 
     var get_cookie = function(k) {
