@@ -28,7 +28,7 @@ $(function(){
         var self_func = arguments.callee;
         var error_handler = function() {
             if (retries_remaining-- > 0) {
-                $('#notice').css("background-color", "yellow").text("Re-connecting...").slideDown().delay(10000).slideUp();
+                $('#notice').css("background-color", "yellow").text("Reconnecting...").slideDown().delay(10000).slideUp();
                 setTimeout(self_func, 10000);
             } else {
                 $('#notice').css("background-color", "red").text("Network error. Please reload.").slideDown();
