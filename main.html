@@ -23,6 +23,24 @@ $(function(){
     };
 
     var new_messages = function(msgs) {
+        var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
+        var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+)");
+        var url_regex = new RegExp("^(s?https?):\/\/([" + url_chars + "]+)(?:/([" + url_chars + "/]*))?$")
+
+        var make_text_elm = function(text) {
+            var elm = $("<div />");
+            $.each(text.split(tokenize_regex), function() {
+                var uri = this.match(url_regex);
+                if (uri) {
+                    var anchor_string = (uri[1] != "http" ? uri[1] + "://" : "") + uri[2] + (uri[3] ? "/..." : "");
+                    elm.append($("<a />").append(document.createTextNode(anchor_string)).attr("href", this));
+                } else {
+                    elm.append(document.createTextNode(this));
+                }
+            });
+            return elm;
+        };
+
         if (focus_out && unread == 0) {
             $("#message").prepend($("<hr />"));
         }
@@ -35,13 +53,13 @@ $(function(){
                     width: "6em",
                     backgroundColor: "#eef"
                 }))
-                .append($("<div />").text(this.text).css({ float: "left", marginLeft: "0.5em" }))
+                .append(make_text_elm(this.text).css({ float: "left", marginLeft: "0.5em" }))
                 .append($("<div />").text((new Date(this.time * 1000)).toLocaleString()).css("float", "right"))
                 .append($("<div />").css("clear", "both"))
                 .css("border-bottom", "1px solid #eee")
             );
             change_title(++unread);
-            });
+        });
     };
 
     var last_id;
