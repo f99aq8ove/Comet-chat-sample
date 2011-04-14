@@ -26,14 +26,27 @@ $(function(){
         var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
         var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+)");
         var url_regex = new RegExp("^(s?https?):\/\/([" + url_chars + "]+)(?:/([" + url_chars + "/]*))?$")
+        var tokenizer = function(str, regex) {
+            var splits = new Array;
+            var m;
+            while (m = regex.exec(str)){
+                var begin = m.index;
+                var end = m.index + m[0].length;
+                splits.push(str.slice(0, begin));
+                splits.push(str.slice(begin, end));
+                str = str.slice(end);
+            }
+            splits.push(str);
+            return splits;
+        };
 
         var make_text_elm = function(text) {
             var elm = $("<div />");
-            $.each(text.split(tokenize_regex), function() {
+            $.each(tokenizer(text, tokenize_regex), function() {
                 var uri = this.match(url_regex);
                 if (uri) {
                     var anchor_string = (uri[1] != "http" ? uri[1] + "://" : "") + uri[2] + (uri[3] ? "/..." : "");
-                    elm.append($("<a />").append(document.createTextNode(anchor_string)).attr("href", this));
+                    elm.append($("<a />").attr({ href: this, title: this }).append(document.createTextNode(anchor_string)));
                 } else {
                     elm.append(document.createTextNode(this));
                 }
