@@ -90,7 +90,7 @@ $(function(){
                 alert("Network error. Please reload.");
             }
         };
-        $.get("/get?last_id=" + last_id + '&dummy=' + (new Date()).getTime(), function(data) {
+        $.get("/get?last_id=" + last_id + '&dummy=' + $.now(), function(data) {
             retries_remaining = 10;
 
             if (!data) {
@@ -124,7 +124,7 @@ $(function(){
     };
 
     $("#chat input[name=name]").val(get_cookie("NAME")).focusout(function() {
-            set_cookie("NAME", $(this).val(), { expires: (new Date((new Date()).getTime() + 7 * 24 * 60 * 60 * 1000)).toUTCString() });
+            set_cookie("NAME", $(this).val(), { expires: (new Date($.now() + 7 * 24 * 60 * 60 * 1000)).toUTCString() });
             });
 
     $(window).resize(function() {
