@@ -22,6 +22,33 @@ $(function(){
         document.title = (focus_out ? "(" + title + ") " : "") + base_title;
     };
 
+    var make_time_str = function(sec) {
+        var now = $.now() / 1000;
+        var data = [
+            [ 60, "second" ],
+            [ 60, "min" ],
+            [ 24, "hour" ],
+            ];
+        var tmp = now - sec;
+        for (var i = 0; i < data.length; i++) {
+            if (tmp < data[i][0]) {
+                break;
+            }
+            tmp /= data[i][0];
+        }
+        tmp = Math.floor(tmp);
+        return (i < data.length ?
+            (tmp + " " + data[i][1] + (tmp < 2 ? "" : "s")) :
+            (new Date(sec * 1000)).toLocaleString());
+    };
+
+    setInterval(function(){
+            $("#message .timeHolder").each(function(i, elm){
+                    var child = $(elm).children().first();
+                    $(elm).text(make_time_str(child.text())).append(child);
+                });
+        }, 60 * 1000);
+
     var new_messages = function(msgs) {
         var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
         var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+)");
@@ -41,7 +68,7 @@ $(function(){
         };
 
         var make_text_elm = function(text) {
-            var elm = $("<div />");
+            var elm = $("<span />");
             $.each(tokenizer(text, tokenize_regex), function() {
                 var uri = this.match(url_regex);
                 if (uri) {
@@ -54,22 +81,22 @@ $(function(){
             return elm;
         };
 
+        var make_time_elm = function(time) {
+            return $("<span />").text(make_time_str(time));
+        };
+
         if (focus_out && unread == 0) {
             $("#message").prepend($("<hr />"));
         }
         $.each(msgs, function() {
             last_id = this.id;
             var hoge = $("#message").prepend($("<div />")
-                .append($("<div />").text(this.name).css({
-                    float: "left",
-                    padding: "0.2em",
-                    width: "6em",
-                    backgroundColor: "#eef"
-                }))
-                .append(make_text_elm(this.text).css({ float: "left", marginLeft: "0.5em" }))
-                .append($("<div />").text((new Date(this.time * 1000)).toLocaleString()).css("float", "right"))
-                .append($("<div />").css("clear", "both"))
-                .css("border-bottom", "1px solid #eee")
+                .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em" }))
+                .append(make_text_elm(this.text))
+                .append($("<div />")
+                    .append(make_time_elm(this.time).css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")
+                        .append($("<span />").text(this.time).css("display", "none")))
+                ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" })
             );
             change_title(++unread);
         });
@@ -132,14 +159,14 @@ $(function(){
             textbox.width($("html").innerWidth()
                 - $("#chat input[name=name]").outerWidth()
                 - $("#chat input[name=submit]").outerWidth()
-                - 70);
+                - 100);
             }).resize();
 });
         </script>
     </head>
-    <body>
+    <body style="background-color: #333">
         <div id="notice" style="padding: 0.5em; margin: 0.5em; display: none"></div>
-        <div>
+        <div style="margin: 0 1em; background-color: #eee">
             <form id="chat">
                 <input type="text" name="name" size="8" />
                 <input type="text" name="text" size="100"/ >
