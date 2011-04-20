@@ -42,12 +42,13 @@ $(function(){
             (new Date(sec * 1000)).toLocaleString());
     };
 
-    setInterval(function(){
-            $("#message .timeHolder").each(function(i, elm){
-                    var child = $(elm).children().first();
-                    $(elm).text(make_time_str(child.text())).append(child);
-                });
-        }, 60 * 1000);
+    var refresh_time_str = function() {
+        $("#message .timeHolder").each(function(i, elm){
+                var child = $(elm).children().first();
+                $(elm).text(make_time_str(child.text())).append(child);
+            });
+    };
+    setInterval(refresh_time_str, 60 * 1000);
 
     var new_messages = function(msgs) {
         var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
@@ -81,10 +82,6 @@ $(function(){
             return elm;
         };
 
-        var make_time_elm = function(time) {
-            return $("<span />").text(make_time_str(time));
-        };
-
         if (focus_out && unread == 0) {
             $("#message").prepend($("<hr />"));
         }
@@ -94,12 +91,14 @@ $(function(){
                 .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em" }))
                 .append(make_text_elm(this.text))
                 .append($("<div />")
-                    .append(make_time_elm(this.time).css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")
+                    .append($("<span />").css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")
                         .append($("<span />").text(this.time).css("display", "none")))
                 ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" })
             );
             change_title(++unread);
         });
+
+        refresh_time_str();
     };
 
     var last_id;
