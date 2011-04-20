@@ -23,22 +23,23 @@ $(function(){
     };
 
     var make_time_str = function(sec) {
-        var now = $.now() / 1000;
+        var now = Math.floor($.now() / 1000);
         var data = [
             [ 60, "second" ],
             [ 60, "min" ],
             [ 24, "hour" ]
             ];
-        var tmp = now - sec;
+        var diff = now - sec;
+        if (diff < 1)
+            return "Just now";
         for (var i = 0; i < data.length; i++) {
-            if (tmp < data[i][0]) {
+            if (diff < data[i][0]) {
                 break;
             }
-            tmp /= data[i][0];
+            diff = Math.floor(diff / data[i][0]);
         }
-        tmp = Math.floor(tmp);
         return (i < data.length ?
-            (tmp + " " + data[i][1] + (tmp < 2 ? "" : "s")) :
+            (diff + " " + data[i][1] + (diff < 2 ? "" : "s")) :
             (new Date(sec * 1000)).toLocaleString());
     };
 
