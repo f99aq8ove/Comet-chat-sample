@@ -7,20 +7,35 @@
         <script type="text/javascript">google.load("jquery", "1");</script>
         <script type="text/javascript">
 $(function(){
+    var base_title = document.title;
+    var notice = {
+        title: function(msg) {
+            document.title = (focus_out ? "(" + msg + ") " : "") + base_title;
+        },
+        warn: function(msg) {
+            $('#notice').css("background-color", "yellow").text(msg).slideDown().delay(10000).slideUp();
+        },
+        error: function(msg) {
+            $('#notice').css("background-color", "red").text(msg).slideDown().delay(10000).slideUp();
+            this.title("!");
+            alert(msg);
+        }
+    };
+    window.onerror = function(msg, url, line) {
+        notice.error(msg + " (" + url + ") line: " + line);
+        return true;
+    };
+
     $("#chat").submit(function() {
         $.post("/post", $("#chat").serialize());
         $("#chat input[name=text]").val('').focus();
         return false;
     });
 
-    var base_title = document.title;
     var focus_out;
     var unread = 0;
     $("body").focusout(function() { focus_out = true; unread = 0; });
-    $("body").bind("focusin.changetitle", function() { focus_out = false; change_title(unread); });
-    var change_title = function(title) {
-        document.title = (focus_out ? "(" + title + ") " : "") + base_title;
-    };
+    $("body").bind("focusin.changetitle", function() { focus_out = false; notice.title(unread); });
 
     var make_time_str = function(sec) {
         var now = Math.floor($.now() / 1000);
@@ -96,7 +111,7 @@ $(function(){
                         .append($("<span />").text(this.time).css("display", "none")))
                 ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" })
             );
-            change_title(++unread);
+            notice.title(++unread);
         });
 
         refresh_time_str();
@@ -108,13 +123,11 @@ $(function(){
         var self_func = arguments.callee;
         var error_handler = function() {
             if (retries_remaining-- > 0) {
-                $('#notice').css("background-color", "yellow").text("Reconnecting...").slideDown().delay(10000).slideUp();
+                notice.warn("Reconnecting...");
                 setTimeout(self_func, 10000);
             } else {
-                $('#notice').css("background-color", "red").text("Network error. Please reload.").slideDown();
+                notice.error("Network error. Please reload.");
                 $("body").unbind("focusin.changetitle");
-                change_title("!");
-                alert("Network error. Please reload.");
             }
         };
         $.get("/get?last_id=" + last_id + '&dummy=' + $.now(), function(data) {
