@@ -103,15 +103,18 @@ $(function(){
         }
         $.each(msgs, function() {
             last_id = this.id;
-            var hoge = $("#message").prepend($("<div />")
+            var new_elm = $("<div />")
                 .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em" }))
                 .append(make_text_elm(this.text))
                 .append($("<div />")
                     .append($("<span />").css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")
                         .attr("title", new Date(this.time * 1000).toLocaleString())
                         .append($("<span />").text(this.time).css("display", "none")))
-                ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" })
-            );
+                ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" });
+
+            new_elm.css("display", "none");
+            $("#message").prepend(new_elm);
+            new_elm.fadeIn();
             notice.title(++unread);
         });
 
