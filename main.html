@@ -118,7 +118,7 @@ $(function(){
     };
 
     var last_id;
-    var retries_remaining;
+    var retries_remaining = 10;
     (function() {
         var self_func = arguments.callee;
         var error_handler = function() {
