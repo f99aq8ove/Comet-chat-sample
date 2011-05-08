@@ -8,7 +8,6 @@ use IO::Select;
 use Data::Dumper;
 use CGI qw/escapeHTML/;
 use sigtrap;
-use Fatal qw/open close/;
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
@@ -84,30 +83,52 @@ sub dispatch {
 
     $req->{uri} =~ /^(.+?)(?:\?(.+))?$/;
     my $uri = $1;
+    $uri =~ s/\.{2,}/_/g;
     my $query = $2;
     if (defined $dispatch_table{$req->{method}}) {
-        if (defined $dispatch_table{$req->{method}}{$uri}) {
-            return &{$dispatch_table{$req->{method}}{$uri}}({
-                    header => $req->{header},
-                    content => $req->{content},
-                    query => $query,
-                    sock => $sock,
-                });
-        } else {
-            return response_create(404, 'Not Found');
+        for (@{$dispatch_table{$req->{method}}}) {
+            if (my @uri_match = $uri =~ /^$_->{uri}$/) {
+                return &{$_->{func}}({
+                        header => $req->{header},
+                        content => $req->{content},
+                        query => $query,
+                        sock => $sock,
+                        uri_match => \@uri_match,
+                    });
+            }
         }
+        return response_create(404, 'Not Found');
     } else {
         return response_create(400, 'Bad Request');
     }
 }
 
-sub get  { my ($uri, $func) = @_; $dispatch_table{GET}{$uri} = $func; }
-sub post { my ($uri, $func) = @_; $dispatch_table{POST}{$uri} = $func; }
+sub get  { my ($uri, $func) = @_; push @{$dispatch_table{GET}}, {uri => $uri, func => $func}; }
+sub post { my ($uri, $func) = @_; push @{$dispatch_table{POST}}, {uri => $uri, func => $func}; }
 
 get '/' => sub {
     my $self = shift;
     my $html = get_file('main.html');
     return response_create(200, 'OK', 'Context-Type: text/html; charset=UTF-8', $html);
+};
+
+get '/s/(.+/)?([^/]+)\.([^./]+)' => sub {
+    my $self = shift;
+    my ($path, $filename, $ext) = @{$self->{uri_match}};
+
+    my $content_type = do { # FIXME: ugly...
+        my %content_type_table = (
+            html => 'text/html; charset=UTF-8',
+            js => 'text/javascript; charset=UTF-8',
+        );
+        defined $content_type_table{$ext} ? $content_type_table{$ext} : 'text/html; charset=UTF-8';
+    };
+
+    if (defined (my $file = get_file('s/' . undef_to_blank($path) . "$filename.$ext"))) {
+        return response_create(200, 'OK', 'Context-Type: ' . $content_type, $file);
+    } else {
+        return response_create(404, 'Not Found');
+    }
 };
 
 sub undef_to_blank {
@@ -195,7 +216,7 @@ sub get_file {
     my $filename = shift;
     my $mtime = (stat $filename)[9];
     if (!defined $file_cache{$filename} || $file_cache{$filename}{mtime} < $mtime) {
-        open my $fh, '<', $filename;
+        open my $fh, '<', $filename or return undef;
         my @tmp = <$fh>;
         $file_cache{$filename}{data} = join '', @tmp;
         $file_cache{$filename}{mtime} = $mtime;
