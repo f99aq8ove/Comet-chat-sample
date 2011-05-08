@@ -109,7 +109,7 @@ sub post { my ($uri, $func) = @_; push @{$dispatch_table{POST}}, {uri => $uri, f
 get '/' => sub {
     my $self = shift;
     my $html = get_file('main.html');
-    return response_create(200, 'OK', 'Context-Type: text/html; charset=UTF-8', $html);
+    return response_create(200, 'OK', 'Content-Type: text/html; charset=UTF-8', $html);
 };
 
 get '/s/(.+/)?([^/]+)\.([^./]+)' => sub {
@@ -125,7 +125,7 @@ get '/s/(.+/)?([^/]+)\.([^./]+)' => sub {
     };
 
     if (defined (my $file = get_file('s/' . undef_to_blank($path) . "$filename.$ext"))) {
-        return response_create(200, 'OK', 'Context-Type: ' . $content_type, $file);
+        return response_create(200, 'OK', 'Content-Type: ' . $content_type, $file);
     } else {
         return response_create(404, 'Not Found');
     }
