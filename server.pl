@@ -8,6 +8,7 @@ use IO::Select;
 use Data::Dumper;
 use CGI qw/escapeHTML/;
 use sigtrap;
+use Errno qw/EAGAIN/;
 
 use FindBin;
 use lib "$FindBin::Bin/lib";
@@ -64,7 +65,7 @@ sub buffered_process {
         my $response = dispatch($sock, $req);
         delete $sock_buf{$sock};
         if (defined $response) {
-            print $sock $response;
+            retry_send($sock, $response);
             return 'close';
         }
         else {
@@ -73,6 +74,23 @@ sub buffered_process {
     }
     else {
         return '';
+    }
+}
+
+sub retry_send {
+    my ($sock, $response) = @_;
+
+    my $off    = 0;
+    my $length = length $response;
+    while ($off < $length) {
+        my $send_length = $length - $off;
+        my $sent = syswrite $sock, $response, $send_length, $off;
+        if (!defined $sent) {
+            next if $! == EAGAIN;
+            warn $!;
+            last;
+        }
+        $off += $sent;
     }
 }
 
@@ -194,11 +212,14 @@ post '/post' => sub {
         my ($json, undef) = make_chat_response_json($client->{last_id});
 
         my $s = $client->{sock};
-        print $s response_create(
-            200,
-            'OK',
-            "Content-Type: application/json; charset=UTF-8\nConnection: close",
-            $json
+        retry_send(
+            $s,
+            response_create(
+                200,
+                'OK',
+                "Content-Type: application/json; charset=UTF-8\nConnection: close",
+                $json
+            )
         );
         $s->close;
     }
