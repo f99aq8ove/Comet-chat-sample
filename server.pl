@@ -186,7 +186,8 @@ sub undef_to_blank {
 sub create_user_color {
     my $ipaddr = shift;
     use Digest::SHA1 qw/sha1/;
-    my (undef, undef, undef, $mday, $mon, $year, undef, undef, undef) = localtime time;
+    my (undef, undef, undef, $mday, $mon, $year, undef, undef, undef)
+        = localtime time;
     my $hash = sha1 $ipaddr, "$mday-$mon-$year";
     return sprintf '%03x', 0xFFF & unpack 'N', $hash;
 }
@@ -210,10 +211,10 @@ post '/post' => sub {
     my $ipaddr = inet_ntoa((sockaddr_in $self->{sock}->peername)[1]);
     push @messages,
         {
-        name => undef_to_blank($query->param('name')),
-        text => undef_to_blank($query->param('text')),
-        id   => sprintf('%d%03d', $time, $counter),
-        time => time,
+        name       => undef_to_blank($query->param('name')),
+        text       => undef_to_blank($query->param('text')),
+        id         => sprintf('%d%03d', $time, $counter),
+        time       => time,
         user_color => create_user_color($ipaddr),
         };
     if (@messages > 100) { shift @messages; }
@@ -252,10 +253,10 @@ sub make_chat_response_json {
                     ',',
                     map({         json_string_encode($_) . ':'
                                 . json_string_encode($data{$_})
-                        } keys %data)
+                    } keys %data)
                     )
                     . '}'
-            } @msg)
+        } @msg)
     ) . ']';
 
     return ($json, scalar @msg);
