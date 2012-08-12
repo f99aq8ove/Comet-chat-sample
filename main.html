@@ -104,7 +104,7 @@ $(function(){
         $.each(msgs, function() {
             last_id = this.id;
             var new_elm = $("<div />")
-                .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em" }))
+                .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em", color: "#" + this.user_color }))
                 .append(make_text_elm(this.text))
                 .append($("<div />")
                     .append($("<span />").css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")

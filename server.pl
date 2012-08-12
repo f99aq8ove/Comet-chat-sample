@@ -183,6 +183,14 @@ sub undef_to_blank {
     return defined $str ? $str : '';
 }
 
+sub create_user_color {
+    my $ipaddr = shift;
+    use Digest::SHA1 qw/sha1/;
+    my (undef, undef, undef, $mday, $mon, $year, undef, undef, undef) = localtime time;
+    my $hash = sha1 $ipaddr, "$mday-$mon-$year";
+    return sprintf '%03x', 0xFFF & unpack 'N', $hash;
+}
+
 my @comet_socks;
 my @messages;
 my $counter   = 0;
@@ -199,12 +207,14 @@ post '/post' => sub {
         $last_time = $time;
         $counter   = 0;
     }
+    my $ipaddr = inet_ntoa((sockaddr_in $self->{sock}->peername)[1]);
     push @messages,
         {
         name => undef_to_blank($query->param('name')),
         text => undef_to_blank($query->param('text')),
         id   => sprintf('%d%03d', $time, $counter),
         time => time,
+        user_color => create_user_color($ipaddr),
         };
     if (@messages > 100) { shift @messages; }
 
