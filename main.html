@@ -37,36 +37,107 @@ $(function(){
     $("body").focusout(function() { focus_out = true; unread = 0; });
     $("body").bind("focusin.changetitle", function() { focus_out = false; notice.title(unread); });
 
-    var make_time_str = function(sec) {
-        var now = Math.floor($.now() / 1000);
-        var data = [
-            [ 60, "second" ],
-            [ 60, "min" ],
-            [ 24, "hour" ]
-            ];
-        var diff = now - sec;
-        if (diff < 1)
-            return "Just now";
-        for (var i = 0; i < data.length; i++) {
-            if (diff < data[i][0]) {
-                break;
+    $("body").focusout(function() { messageView.focusOut(); });
+    $("body").focusin(function() { messageView.focusIn(); });
+
+    var messageManager = (function(){
+        var messages_ = [];
+        var regex_;
+        var view_;
+        var messageListeners = [];
+
+        var addMessage = function(msg) {
+            messages_.push(msg);
+            if (!regex_ || regex_.test(msg.text)) {
+                view_.newMessage(msg);
             }
-            diff = Math.floor(diff / data[i][0]);
-        }
-        return (i < data.length ?
-            (diff + " " + data[i][1] + (diff < 2 ? "" : "s")) :
-            (new Date(sec * 1000)).toLocaleString());
-    };
 
-    var refresh_time_str = function() {
-        $("#message .timeHolder").each(function(i, elm){
-                var child = $(elm).children().first();
-                $(elm).text(make_time_str(child.text())).append(child);
+            $.each(messageListeners, function() {
+                var regex = this.regexGenerator();
+                if (!regex || regex.test(msg.text)) {
+                    this.listener.newMessage(msg);
+                }
             });
-    };
-    setInterval(refresh_time_str, 60 * 1000);
+        };
 
-    var new_messages = function(msgs) {
+        var reload = function() {
+            var messages = regex_
+                ? $.grep(messages_, function(m) { return regex_.test(m.text); })
+                : messages_;
+            $.each(messages, function() { view_.newMessage(this); });
+        };
+
+        var setFilter = function(filter) {
+            regex_ = filter;
+        };
+
+        var setView = function(view) {
+            view_ = view;
+        };
+
+        var setNewMessageListener = function(messageListener, regexGenerator) {
+            messageListeners.push({ listener : messageListener, regexGenerator : regexGenerator });
+        };
+
+        return {
+            addMessage : addMessage,
+            setFilter : setFilter,
+            setView : setView,
+            reload : reload,
+            setNewMessageListener : setNewMessageListener
+        };
+    }());
+
+    var quote = function(s) {
+        return s.replace(/\W/g, function(x) { return "\\" + x; });
+    };
+
+    var MessageListener = function(linkElm, regexGenerator) {
+        this.linkElm = linkElm;
+        this.regexGenerator = regexGenerator;
+        this.linkText = linkElm.text();
+
+        this.focus = true;
+        this.unread = 0;
+        var self = this;
+
+        linkElm.bind("click", function() {
+            messageView.setFilter(regexGenerator());
+            $(this).text(self.linkText);
+            return false;
+        });
+
+        $("body").focusout(function() { self.focus = false; self.unread = 0; });
+        $("body").focusin(function() { self.focus = true; });
+    };
+
+    MessageListener.prototype.newMessage = function() {
+        if (!this.focus) {
+            this.unread++;
+            this.linkElm.text(this.linkText + "(" + this.unread + ")");
+        }
+    };
+
+    var allMessage = new MessageListener($("#all_link"), function() {});
+    messageManager.setNewMessageListener(allMessage, allMessage.regexGenerator);
+
+    var replyMessage = new MessageListener($("#reply_link"), function() {
+        var name = $("#chat input[name=name]").val();
+        return new RegExp("@" + quote(name) + "(?:\\s|$)");
+    });
+    messageManager.setNewMessageListener(replyMessage, replyMessage.regexGenerator);
+
+
+    var messageView = (function() {
+        var model_;
+        var focus;
+        var unread;
+
+        var setModel = function(model) {
+            model_ = model;
+            model_.setView(this);
+        };
+
         var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
         var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+)");
         var url_regex = new RegExp("^(s?https?):\/\/([" + url_chars + "]+)(?:/([" + url_chars + "/]*))?$")
@@ -90,7 +161,7 @@ $(function(){
                 var uri = this.match(url_regex);
                 if (uri) {
                     var anchor_string = (uri[1] != "http" ? uri[1] + "://" : "") + uri[2] + (uri[3] ? "/..." : "");
-                    elm.append($("<a />").attr({ href: this, title: this }).append(document.createTextNode(anchor_string)));
+                    elm.append($("<a />").attr({ href: this, title: this }).text(anchor_string));
                 } else {
                     elm.append(document.createTextNode(this));
                 }
@@ -98,27 +169,92 @@ $(function(){
             return elm;
         };
 
-        if (focus_out && unread == 0) {
-            $("#message").prepend($("<hr />"));
-        }
-        $.each(msgs, function() {
-            last_id = this.id;
+        var newMessage = function(msg) {
             var new_elm = $("<div />")
-                .append($("<span />").text(this.name).css({ fontWeight: "bold", marginRight: "0.5em", color: "#" + this.user_color }))
-                .append(make_text_elm(this.text))
+                .append($("<span />").text(msg.name).addClass("userName").css({ color: "#" + msg.user_color }))
+                .append(make_text_elm(msg.text))
                 .append($("<div />")
-                    .append($("<span />").css({ color: "gray", fontSize: "50%" }).addClass("timeHolder")
-                        .attr("title", new Date(this.time * 1000).toLocaleString())
-                        .append($("<span />").text(this.time).css("display", "none")))
-                ).css({ border: "1px solid #eee", backgroundColor: "#fff", padding: "0.3em", margin: "0 1em" });
+                    .append($("<span />").addClass("timeHolder")
+                        .attr("title", new Date(msg.time * 1000).toLocaleString())
+                        .append($("<span />").text(msg.time).css("display", "none")))
+                ).addClass("messageBox");
+
+            if (!focus && unread == 0) {
+                $("#message").prepend($("<hr />"));
+            }
 
             new_elm.css("display", "none");
             $("#message").prepend(new_elm);
             new_elm.fadeIn();
+
+            if (!focus) {
+                unread++;
+            }
+        };
+
+        var refresh = function() {
+            $("#message").empty();
+            model_.reload();
+            refresh_time_str();
+        };
+
+        var make_time_str = function(sec) {
+            var now = Math.floor($.now() / 1000);
+            var data = [
+                [ 60, "second" ],
+                [ 60, "min" ],
+                [ 24, "hour" ]
+                ];
+            var diff = now - sec;
+            if (diff < 1)
+                return "Just now";
+            for (var i = 0; i < data.length; i++) {
+                if (diff < data[i][0]) {
+                    break;
+                }
+                diff = Math.floor(diff / data[i][0]);
+            }
+            return (i < data.length ?
+                (diff + " " + data[i][1] + (diff < 2 ? "" : "s")) :
+                (new Date(sec * 1000)).toLocaleString());
+        };
+
+        var refresh_time_str = function() {
+            $("#message .timeHolder").each(function(i, elm){
+                    var child = $(elm).children().first();
+                    $(elm).text(make_time_str(child.text())).append(child);
+                });
+        };
+        setInterval(refresh_time_str, 60 * 1000);
+
+        var focusOut = function() { focus = false; unread = 0; };
+        var focusIn = function(){ focus = true; };
+
+        var setFilter = function(regex) {
+            model_.setFilter(regex);
+            refresh();
+        };
+
+        return {
+            setModel : setModel,
+            newMessage : newMessage,
+            refresh : refresh,
+            refreshTime : refresh_time_str,
+            focusOut : focusOut,
+            focusIn : focusIn,
+            setFilter : setFilter
+        };
+    }());
+
+    messageView.setModel(messageManager);
+
+    var new_messages = function(msgs) {
+        $.each(msgs, function() {
+            last_id = this.id;
+            messageManager.addMessage(this);
             notice.title(++unread);
         });
-
-        refresh_time_str();
+        messageView.refreshTime();
     };
 
     var last_id;
@@ -184,16 +320,76 @@ $(function(){
         }).keyup();
 });
         </script>
+        <style type="text/css">
+body {
+    background-color: #333
+}
+
+.timeHolder {
+    color: gray;
+    font-size: 50%;
+}
+
+.userName {
+    font-weight: bold;
+    margin-right: 0.5em;
+}
+
+.messageBox {
+    border: 1px solid #eee;
+    background-color: #fff;
+    padding: 0.3em;
+}
+
+.inputBox {
+    background-color: #eee
+}
+
+#notice {
+    padding: 0.5em;
+    margin: 0.5em;
+    display: none;
+}
+
+#container {
+    margin: 0 1em;
+}
+
+#main {
+    float: left;
+    width: 80%;
+}
+
+#menu {
+    background-color: #fff;
+    border: 1px solid #eee;
+    padding: 0.3em;
+}
+
+#menu ul {
+    list-style-type: none;
+}
+        </style>
     </head>
-    <body style="background-color: #333">
-        <div id="notice" style="padding: 0.5em; margin: 0.5em; display: none"></div>
-        <div style="margin: 0 1em; background-color: #eee">
-            <form id="chat">
-                <input type="text" name="name" size="8" />
-                <input type="text" name="text" size="100" />
-                <input type="submit" name="submit" value="send" />
-            </form>
+    <body>
+        <div id="notice"></div>
+        <div id="container">
+            <div class="inputBox">
+                <form id="chat">
+                    <input type="text" name="name" size="8" />
+                    <input type="text" name="text" size="100" />
+                    <input type="submit" name="submit" value="send" />
+                </form>
+            </div>
+            <div id="main">
+                <div id="message"></div>
+            </div>
+            <div id="menu">
+                <ul>
+                    <li><a id="all_link" href="#">All</a></li>
+                    <li><a id="reply_link" href="#">Reply</a></li>
+                </ul>
+            </div>
         </div>
-        <div id="message"></div>
     </body>
 </html>
