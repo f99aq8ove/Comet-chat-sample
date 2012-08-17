@@ -171,7 +171,7 @@ $(function(){
                 var hash_tag = this.match(hash_tag_regex);
                 if (hash_tag) {
                     var anchor = $("<a />", { href: "#", text: hash_tag[0] }).bind("click", function() {
-                        messageView.setFilter(new RegExp(quote(hash_tag[0]), "i"));
+                        messageView.setFilter(new RegExp(quote(hash_tag[0]) + "(?:\\s|$)", "i"));
                         return false;
                     });
                     elm.append(anchor);
@@ -262,11 +262,30 @@ $(function(){
 
     messageView.setModel(messageManager);
 
+    var hashTags = {};
     var new_messages = function(msgs) {
         $.each(msgs, function() {
             last_id = this.id;
             messageManager.addMessage(this);
             notice.title(++unread);
+
+            var hash_tag_match = /(#\S+)(?:\s|$)/.exec(this.text);
+            if (hash_tag_match) {
+                var hash_tag = hash_tag_match[1];
+                if (hashTags[hash_tag.toLowerCase()]) {
+                    // already exists.
+                    return;
+                }
+                hashTags[hash_tag.toLowerCase()] = 1;
+
+                var anchor = $("<a />", { href: "#", text: hash_tag });
+                $("#menu_list").append($("<li />", {}).append(anchor));
+
+                var newListener = new MessageListener(anchor, function() {
+                    return new RegExp(quote(hash_tag) + "(?:\\s|$)", "i");
+                });
+                messageManager.setNewMessageListener(newListener, newListener.regexGenerator);
+            }
         });
         messageView.refreshTime();
     };
@@ -399,7 +418,7 @@ body {
                 <div id="message"></div>
             </div>
             <div id="menu">
-                <ul>
+                <ul id="menu_list">
                     <li><a id="all_link" href="#">All</a></li>
                     <li><a id="reply_link" href="#">Reply</a></li>
                 </ul>
