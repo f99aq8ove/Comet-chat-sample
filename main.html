@@ -139,10 +139,11 @@ $(function(){
         };
 
         var url_chars = "-_.!~*'()a-zA-Z0-9;?:@&=+$,%#";
-        var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+)");
+        var tokenize_regex = new RegExp("(s?https?:\/\/[" + url_chars + "/]+|#\\S+)");
         var url_regex = new RegExp("^(s?https?):\/\/([" + url_chars + "]+)(?:/([" + url_chars + "/]*))?$")
+        var hash_tag_regex = /^#\S+$/;
         var tokenizer = function(str, regex) {
-            var splits = new Array;
+            var splits = [];
             var m;
             while (m = regex.exec(str)){
                 var begin = m.index;
@@ -161,10 +162,21 @@ $(function(){
                 var uri = this.match(url_regex);
                 if (uri) {
                     var anchor_string = (uri[1] != "http" ? uri[1] + "://" : "") + uri[2] + (uri[3] ? "/..." : "");
-                    elm.append($("<a />").attr({ href: this, title: this }).text(anchor_string));
-                } else {
-                    elm.append(document.createTextNode(this));
+                    elm.append($("<a />", { href: this, title: this, text: anchor_string }));
+                    return;
                 }
+
+                var hash_tag = this.match(hash_tag_regex);
+                if (hash_tag) {
+                    var anchor = $("<a />", { href: "#", text: hash_tag[0] }).bind("click", function() {
+                        messageView.setFilter(new RegExp(quote(hash_tag[0]), "i"));
+                        return false;
+                    });
+                    elm.append(anchor);
+                    return;
+                }
+
+                elm.append(document.createTextNode(this));
             });
             return elm;
         };
