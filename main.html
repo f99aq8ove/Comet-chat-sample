@@ -54,8 +54,13 @@ $(function(){
 
             $.each(messageListeners, function() {
                 var regex = this.regexGenerator();
+                if (regex && regex_) {
+                    var active = regex_.source == regex.source;
+                } else {
+                    var active = regex_ == regex;
+                }
                 if (!regex || regex.test(msg.text)) {
-                    this.listener.newMessage(msg);
+                    this.listener.newMessage(msg, active);
                 }
             });
         };
@@ -97,22 +102,19 @@ $(function(){
         this.regexGenerator = regexGenerator;
         this.linkText = linkElm.text();
 
-        this.focus = true;
         this.unread = 0;
         var self = this;
 
         linkElm.bind("click", function() {
             messageView.setFilter(regexGenerator());
             $(this).text(self.linkText);
+            self.unread = 0;
             return false;
         });
-
-        $("body").focusout(function() { self.focus = false; self.unread = 0; });
-        $("body").focusin(function() { self.focus = true; });
     };
 
-    MessageListener.prototype.newMessage = function() {
-        if (!this.focus) {
+    MessageListener.prototype.newMessage = function(msg, active) {
+        if (!active) {
             this.unread++;
             this.linkElm.text(this.linkText + "(" + this.unread + ")");
         }
