@@ -266,26 +266,25 @@ $(function(){
     var new_messages = function(msgs) {
         $.each(msgs, function() {
             last_id = this.id;
-            messageManager.addMessage(this);
             notice.title(++unread);
 
             var hash_tag_match = /(#\S+)(?:\s|$)/.exec(this.text);
             if (hash_tag_match) {
                 var hash_tag = hash_tag_match[1];
-                if (hashTags[hash_tag.toLowerCase()]) {
-                    // already exists.
-                    return;
+                if (!hashTags[hash_tag.toLowerCase()]) {
+                    hashTags[hash_tag.toLowerCase()] = 1;
+
+                    var anchor = $("<a />", { href: "#", text: hash_tag });
+                    $("#menu_list").append($("<li />", {}).append(anchor));
+
+                    var newListener = new MessageListener(anchor, function() {
+                        return new RegExp(quote(hash_tag) + "(?:\\s|$)", "i");
+                    });
+                    messageManager.setNewMessageListener(newListener, newListener.regexGenerator);
                 }
-                hashTags[hash_tag.toLowerCase()] = 1;
-
-                var anchor = $("<a />", { href: "#", text: hash_tag });
-                $("#menu_list").append($("<li />", {}).append(anchor));
-
-                var newListener = new MessageListener(anchor, function() {
-                    return new RegExp(quote(hash_tag) + "(?:\\s|$)", "i");
-                });
-                messageManager.setNewMessageListener(newListener, newListener.regexGenerator);
             }
+
+            messageManager.addMessage(this);
         });
         messageView.refreshTime();
     };
